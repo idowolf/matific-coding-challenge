@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Parachutes</title>
+    <script src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+		// Using Phaser plugin to create a CANVAS based game environment
+        var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
+            preload: preload,
+            create: create,
+            update: update
+        });
+
+        // playerObj SETTINGS
+        var fallingSpeed = 100;
+        var minSpawnTime = 500;
+        var maxSpawnTime = 2000;
+        var playerObjSpeed = 300;
+        var playerObjparachutistObjtPosition = 32;
+        var livesCount = 3;
+        var scoreGainedPerCatch = 10;
+        var livesLostPerDrop = 1;
+        var planeObjSpeed = 300;
+        var hudStyle = {
+            fontSize: '20px',
+            fill: '#000'
+        };
+        var gameOverStyle = {
+            font: '84px Arial',
+            fill: '#fff'
+        };
+
+        // OTHER VARIABLES
+        var playerObj;
+        var platforms;
+        var cursors;
+        var onGameRun;
+        var parachutistsContainer;
+        var seaObj;
+        var scoreText;
+        var livesText;
+        var stateText;
+        var timeElapsed = 0;
+        var score = 0;
+        var lives = livesCount;
+        var creationTime = minSpawnTime;
+        var resetKey;
+		
+		/* Load the assets with the keys as the first argument */ 
+        function preload() {
+            game.load.image('bgImage', 'assets/background.png');
+            game.load.image('seaImage', 'assets/sea.png');
+            game.load.image('parachutistImage', 'assets/parachutist.png');
+            game.load.image('playerImage', 'assets/boat.png');
+            game.load.image('planeImage', 'assets/plane.png');
+        }
+		
+		/* Initialization function on load */ 
+        function create() {
+            createSprites();
+            createPhysics();
+            createUI();
+        }
+		
+		/* Sub-function for sprite initialization */ 
+        function createSprites() {
+            game.add.sprite(0, 0, 'bgImage');
+            seaObj = game.add.sprite(0, game.world.height - game.cache.getImage('seaImage').height, 'seaImage');
+            planeObj = game.add.sprite(game.world.width - game.cache.getImage('planeImage').width, 0, 'planeImage');
+            parachutistsContainer = game.add.group();
+            seaObj.scale.setTo(2, 2);
+            playerObj = game.add.sprite(playerObjparachutistObjtPosition, game.world.height - game.cache.getImage('seaImage').height, 'playerImage');
+
+        }
+		
+		/* Sub-function for physics initialization */ 
+        function createPhysics() {
+			// Init the physics engine and add physics properties to necessary sprites
+            game.physics.startSystem(Phaser.Physics.ARCADE);
+            game.physics.setBoundsToWorld();
+            game.physics.arcade.enable([playerObj, seaObj, planeObj]);
+
+			// Velocity, collision settings
+            parachutistsContainer.enableBody = true;
+            planeObj.checkWorldBounds = true;
+            planeObj.events.onOutOfBounds.add(resetplaneObjX, this);
+            planeObj.body.velocity.x = -planeObjSpeed;
+            playerObj.body.collideWorldBounds = true;
+            seaObj.body.immovable = true;
+
+        }
+		
+		/* Sub-function for UI and input initialization */ 
+        function createUI() {
+            scoreText = game.add.text(16, 16, 'Score: ' + score, hudStyle);
+            livesText = game.add.text(16, 48, 'Lives: ' + lives, hudStyle);
+            stateText = game.add.text(game.world.centerX, game.world.centerY, ' ', gameOverStyle);
+            stateText.anchor.setTo(0.5, 0.5);
+            stateText.visible = false;
+
+            cursors = game.input.keyboard.createCursorKeys();
+            resetKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+            onGameRun = true;
+
+        }
+		
+		/* Runtime function - called every frame */ 
+        function update() {
+			// exit if currently not running (aka on game over screen)
+            if (!onGameRun)
+                return;
+			
+			// create a new parachutistObj at random times in the range specified at the top
+            timeElapsed += game.time.elapsed;
+            if (timeElapsed > creationTime) {
+                createNewparachutistObj();
+                creationTime = game.rnd.integerInRange(minSpawnTime, maxSpawnTime);
+                timeElapsed = 0;
+            }
+			
+			// check for collisions and input and call functions appropriately
+            game.physics.arcade.overlap(playerObj, parachutistsContainer, collectparachutistObj, null, this);
+            game.physics.arcade.overlap(seaObj, parachutistsContainer, dropparachutistObj, null, this);
+            playerObjMovement();
+        }
+		
+		/* When called, generate a new parachutistObj at planeObj position and grant it gravity */ 
+        function createNewparachutistObj() {
+            var parachutistObj = parachutistsContainer.create(planeObj.position.x + game.cache.getImage('parachutistImage').width,
+                planeObj.position.y + game.cache.getImage('parachutistImage').height / 2, 'parachutistImage');
+            parachutistObj.body.gravity.y = fallingSpeed;
+        }
+
+		/* Simple playerObj movement - set velocity at the top */ 
+        function playerObjMovement() {
+            playerObj.body.velocity.x = 0;
+
+            if (cursors.left.isDown)
+                playerObj.body.velocity.x = -playerObjSpeed;
+            else if (cursors.right.isDown)
+                playerObj.body.velocity.x = playerObjSpeed;
+        }
+		
+		/* Put planeObj back on right hand side */ 
+        function resetplaneObjX() {
+            planeObj.position.x = game.world.width - planeObj.body.width;
+        }
+		
+		/* Called upon playerObj-parachutistObj collision */ 
+        function collectparachutistObj(playerObj, parachutistObj) {
+            parachutistObj.kill();
+            setScore(score + scoreGainedPerCatch);
+        }
+
+		/* Sets and prints the score */
+        function setScore(newScore) {
+            score = newScore;
+            scoreText.text = 'Score: ' + score;
+
+        }
+		
+		/* Sets and prints lives */ 
+        function setLives(newLives) {
+            lives = newLives;
+            livesText.text = 'Lives: ' + lives;
+
+        }
+
+		/* Called upon parachutistObj-seaObj collision */ 
+        function dropparachutistObj(seaObj, parachutistObj) {
+            parachutistObj.kill();
+
+            lives -= livesLostPerDrop;
+            livesText.text = 'Lives: ' + lives;
+            if (lives < 1) {
+                endGame();
+            }
+
+        }
+		
+		/* Kill (hide) objects, display game over message, wait for input */ 
+        function endGame() {
+            playerObj.kill();
+            parachutistsContainer.callAll('kill');
+            planeObj.kill();
+            onGameRun = false;
+            stateText.text = " GAME OVER \n Score: " + score + "\n Hit SPACE to reparachutistObjt";
+            stateText.visible = true;
+            resetKey.onDown.addOnce(reparachutistObjt, this);
+			
+        }
+
+		/* Reset values and positions, then parachutistObjt again */ 
+        function reparachutistObjt() {
+            setLives(livesCount);
+            setScore(0);
+            onGameRun = true;
+            playerObj.revive();
+            playerObj.position.x = playerObjparachutistObjtPosition;
+            resetplaneObjX();
+            planeObj.revive();
+            stateText.visible = false;
+			
+        }
+    </script>
+
+</body>
+
+</html>
