@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Parachutes</title>
-    <script src="js/phaser.min.js"></script>
+    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
     <style type="text/css">
         body {
             margin: 0;
@@ -22,16 +22,16 @@
             update: update
         });
 
-        // playerObj SETTINGS
+        // PLAYER SETTINGS
         var fallingSpeed = 100;
         var minSpawnTime = 500;
         var maxSpawnTime = 2000;
-        var playerObjSpeed = 300;
-        var playerObjparachutistObjtPosition = 32;
+        var playerSpeed = 300;
+        var playerStartPosition = 32;
         var livesCount = 3;
         var scoreGainedPerCatch = 10;
         var livesLostPerDrop = 1;
-        var planeObjSpeed = 300;
+        var planeSpeed = 300;
         var hudStyle = {
             fontSize: '20px',
             fill: '#000'
@@ -80,7 +80,7 @@
             planeObj = game.add.sprite(game.world.width - game.cache.getImage('planeImage').width, 0, 'planeImage');
             parachutistsContainer = game.add.group();
             seaObj.scale.setTo(2, 2);
-            playerObj = game.add.sprite(playerObjparachutistObjtPosition, game.world.height - game.cache.getImage('seaImage').height, 'playerImage');
+            playerObj = game.add.sprite(playerStartPosition, game.world.height - game.cache.getImage('seaImage').height, 'playerImage');
 
         }
 		
@@ -94,8 +94,8 @@
 			// Velocity, collision settings
             parachutistsContainer.enableBody = true;
             planeObj.checkWorldBounds = true;
-            planeObj.events.onOutOfBounds.add(resetplaneObjX, this);
-            planeObj.body.velocity.x = -planeObjSpeed;
+            planeObj.events.onOutOfBounds.add(resetPlaneX, this);
+            planeObj.body.velocity.x = -planeSpeed;
             playerObj.body.collideWorldBounds = true;
             seaObj.body.immovable = true;
 
@@ -122,44 +122,44 @@
             if (!onGameRun)
                 return;
 			
-			// create a new parachutistObj at random times in the range specified at the top
+			// create a new parachutist at random times in the range specified at the top
             timeElapsed += game.time.elapsed;
             if (timeElapsed > creationTime) {
-                createNewparachutistObj();
+                createNewParachutist();
                 creationTime = game.rnd.integerInRange(minSpawnTime, maxSpawnTime);
                 timeElapsed = 0;
             }
 			
 			// check for collisions and input and call functions appropriately
-            game.physics.arcade.overlap(playerObj, parachutistsContainer, collectparachutistObj, null, this);
-            game.physics.arcade.overlap(seaObj, parachutistsContainer, dropparachutistObj, null, this);
-            playerObjMovement();
+            game.physics.arcade.overlap(playerObj, parachutistsContainer, collectParachutist, null, this);
+            game.physics.arcade.overlap(seaObj, parachutistsContainer, dropParachutist, null, this);
+            playerMovement();
         }
 		
-		/* When called, generate a new parachutistObj at planeObj position and grant it gravity */ 
-        function createNewparachutistObj() {
+		/* When called, generate a new parachutist at plane position and grant it gravity */ 
+        function createNewParachutist() {
             var parachutistObj = parachutistsContainer.create(planeObj.position.x + game.cache.getImage('parachutistImage').width,
                 planeObj.position.y + game.cache.getImage('parachutistImage').height / 2, 'parachutistImage');
             parachutistObj.body.gravity.y = fallingSpeed;
         }
 
-		/* Simple playerObj movement - set velocity at the top */ 
-        function playerObjMovement() {
+		/* Simple player movement - set velocity at the top */ 
+        function playerMovement() {
             playerObj.body.velocity.x = 0;
 
             if (cursors.left.isDown)
-                playerObj.body.velocity.x = -playerObjSpeed;
+                playerObj.body.velocity.x = -playerSpeed;
             else if (cursors.right.isDown)
-                playerObj.body.velocity.x = playerObjSpeed;
+                playerObj.body.velocity.x = playerSpeed;
         }
 		
-		/* Put planeObj back on right hand side */ 
-        function resetplaneObjX() {
+		/* Put plane back on right hand side */ 
+        function resetPlaneX() {
             planeObj.position.x = game.world.width - planeObj.body.width;
         }
 		
-		/* Called upon playerObj-parachutistObj collision */ 
-        function collectparachutistObj(playerObj, parachutistObj) {
+		/* Called upon player-parachutist collision */ 
+        function collectParachutist(playerObj, parachutistObj) {
             parachutistObj.kill();
             setScore(score + scoreGainedPerCatch);
         }
@@ -178,8 +178,8 @@
 
         }
 
-		/* Called upon parachutistObj-seaObj collision */ 
-        function dropparachutistObj(seaObj, parachutistObj) {
+		/* Called upon parachutist-sea collision */ 
+        function dropParachutist(seaObj, parachutistObj) {
             parachutistObj.kill();
 
             lives -= livesLostPerDrop;
@@ -196,20 +196,20 @@
             parachutistsContainer.callAll('kill');
             planeObj.kill();
             onGameRun = false;
-            stateText.text = " GAME OVER \n Score: " + score + "\n Hit SPACE to reparachutistObjt";
+            stateText.text = " GAME OVER \n Score: " + score + "\n Hit SPACE to restart";
             stateText.visible = true;
-            resetKey.onDown.addOnce(reparachutistObjt, this);
+            resetKey.onDown.addOnce(restart, this);
 			
         }
 
-		/* Reset values and positions, then parachutistObjt again */ 
-        function reparachutistObjt() {
+		/* Reset values and positions, then parachutist again */ 
+        function restart() {
             setLives(livesCount);
             setScore(0);
             onGameRun = true;
             playerObj.revive();
-            playerObj.position.x = playerObjparachutistObjtPosition;
-            resetplaneObjX();
+            playerObj.position.x = playerStartPosition;
+            resetPlaneX();
             planeObj.revive();
             stateText.visible = false;
 			
